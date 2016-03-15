@@ -1,37 +1,55 @@
+//2016 NTU mike
 var HMM = {
-    pi: [0.5, 0.2, 0.3],
-    A: [
-        [0.6, 0.2, 0.2],
-        [0.5, 0.3, 0.2],
-        [0.4, 0.1, 0.5]
-    ],
-    B1: [0.7, 0.1, 0.2],
-    B2: [0.1, 0.6, 0.3],
-    B3: [0.3, 0.3, 0.4],
-    PrintInit: function() {
-        console.log("\n Init state prob. \n", this.pi);
-        console.log("\n A: \n", this.A);
-        console.log("\n B1: \n", this.B1);
-        console.log("\n B2: \n", this.B2);
-        console.log("\n B3: \n", this.B3);
+    data: {
+        states: [
+            's1',
+            's2',
+            's3'
+        ],
+        //observations
+        obs: [
+            'up',
+            'up',
+            'unchanged',
+            'down',
+            'unchanged',
+            'down',
+            'up'
+
+        ],
+        //init_state_prob
+        init_prob: {
+            's1': 0.5,
+            's2': 0.2,
+            's3': 0.3
+        },
+        //transition_prob
+        trans_prob: {
+            's1': { 's1': 0.6, 's2': 0.2, 's3': 0.2 },
+            's2': { 's1': 0.5, 's2': 0.3, 's3': 0.2 },
+            's3': { 's1': 0.4, 's2': 0.1, 's3': 0.5 }
+        },
+        //observations_prob
+        obs_prob: {
+            's1': { 'up': 0.7, 'down': 0.1, 'unchanged': 0.2 },
+            's2': { 'up': 0.1, 'down': 0.6, 'unchanged': 0.3 },
+            's3': { 'up': 0.3, 'down': 0.3, 'unchanged': 0.4 }
+        }
     },
-
-
-    OperationProcess: function(squence) {
-    	var procesS;
-    	squence.forEach(function(p, i) {
-            ans = accMul(ans, p);
-        });
-        console.log(a);
+    PrintInit: function() {
+        console.log("\n init_state_prob: \n", this.data.init_prob);
+        console.log("\n transition_prob: \n", this.data.trans_prob);
+        console.log("\n observations_prob: \n", this.data.obs_prob);
     },
 
     question1: function() {
+        var initP = this.data.init_prob;
+        var tranP = this.data.trans_prob;
         var q1 = "\nQuestion1:   P(up, up, unchanged, down, unchanged, down, up|λ)";
-        var squence = [this.pi[0], this.A[0][0], this.A[0][2], this.A[2][1], this.A[1][2], this.A[2][1], this.A[1][0]];
-		// this.OperationProcess(squence);
+        var squence = [initP['s1'], tranP['s1']['s1'], tranP['s1']['s3'], tranP['s3']['s2'], tranP['s2']['s3'], tranP['s3']['s2'], tranP['s2']['s1']];
         console.log(q1);
         console.log("   =P(S1)P(S1|S1)P(S3|S1)P(S2|S3)P(S3|S2)P(S2|S3)P(S1|S2)");
-        console.log("   =", this.pi[0], this.A[0][0], this.A[0][2], this.A[2][1], this.A[1][2], this.A[2][1], this.A[1][0]);
+        console.log("   =", initP['s1'], tranP['s1']['s1'], tranP['s1']['s3'], tranP['s3']['s2'], tranP['s2']['s3'], tranP['s3']['s2'], tranP['s2']['s1']);
         var ans = 1.0;
         squence.forEach(function(p, i) {
             ans = accMul(ans, p);
@@ -45,6 +63,10 @@ var HMM = {
         console.log(q2);
 
     }
+}
+
+function Viterbi(data) {
+  
 }
 
 function accMul(arg1, arg2) {
