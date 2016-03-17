@@ -2,23 +2,33 @@
 //隱馬可夫數學模型
 var HMM = {
     data: {
-        obs: [], //observations
+        //觀測符號物件
+        //observations
+        obs: [],
+        //狀態物件
+        //states
         states: [
             's1',
             's2',
             's3'
         ],
-        init_prob: { //init_state_prob
+        //初始機率物件
+        //init_state_prob
+        init_prob: {
             's1': 0.5,
             's2': 0.2,
             's3': 0.3
         },
-        trans_prob: { //transition_prob
+        //狀態轉移機率物件
+        //transition_prob
+        trans_prob: {
             's1': { 's1': 0.6, 's2': 0.2, 's3': 0.2 },
             's2': { 's1': 0.5, 's2': 0.3, 's3': 0.2 },
             's3': { 's1': 0.4, 's2': 0.1, 's3': 0.5 }
         },
-        obs_prob: { //observations_prob 
+        //觀測符號出現機率
+        //observations_prob 
+        obs_prob: {
             's1': { 'up': 0.7, 'down': 0.1, 'unchanged': 0.2 },
             's2': { 'up': 0.1, 'down': 0.6, 'unchanged': 0.3 },
             's3': { 'up': 0.3, 'down': 0.3, 'unchanged': 0.4 }
@@ -56,9 +66,9 @@ var HMM = {
         this.setObservations(prob);
         var q2 = "\nQuestion2:   Find the optimal state sequence of the model which generates the observation sequence: (up, up, unchanged, down, unchanged, down, up)";
         console.log(q2);
-        Viterbi(this.data);
         BruteForce(this.data);
         greedy(this.data);
+        Viterbi_a(this.data);
     }
 }
 
@@ -75,14 +85,12 @@ function BruteForce(data) {
     //用以存放結果的陣列
     var results = [];
     //使用遞迴方式排列出所有組合
-    //共有兩個傳入參數，目前處理的維度、排列組合時已累積的字首
     function explore(curDim, prefix) {
         //取出下一層維度
         var nextDim = dimensions.shift();
         for (var i = 0; i < curDim.length; i++) {
             if (nextDim)
             //若仍有下一層維度，繼續展開
-            //並將傳入字首加上目前維度選項成為下一層的字首
                 explore(nextDim, prefix + curDim[i] + ",");
             else
             //若已無下一層，則傳入字首加上目前維度選項成為結果
@@ -108,6 +116,7 @@ function BruteForce(data) {
         for (var j = 0; j < 7; j++) {
             //將路徑上機率相乘
             nowAns = accMul(data.obs_prob[dig[j]][data.obs[j]], nowAns);
+            //乘上一開始初始機率
             if (j == 0) nowAns = accMul(data.init_prob[dig[j]], nowAns);
             if (j < 6) nowAns = accMul(data.trans_prob[dig[j]][dig[j + 1]], nowAns);
         }
@@ -187,113 +196,93 @@ function greedy(data) {
 }
 
 
-
-
-function Viterbi_A(data) {
-    var sq = [];
-    var nowAns = 1;
+function Viterbi_a(data) {
+    var path = [];
     var step = data.obs;
-    //初始狀態
-    // var temps;
-    // if (step[0] == 'up') temps = 's1';
-    // else if (step[0] == 'down') temps = 's2';
-    // else if (step[0] == 'unchanged') temps = 's2';
-    console.log('\n \n');
-    sq.push(syToSt(step[0]));
-    nowAns = accMul(data.obs_prob[syToSt(step[0])][step[0]], data.init_prob[syToSt(step[0])]);
-    console.log(nowAns);
+    var sq = []; //答案路徑
+    var Ans; //最佳答案
+    //[{s1:w,s2:w,s3:w},{}]
+    //初始化路徑
+    path[0] = {
+        's1': accMul(data.obs_prob['s1'][step[0]], 0.5),
+        's2': accMul(data.obs_prob['s2'][step[0]], 0.2),
+        's3': accMul(data.obs_prob['s3'][step[0]], 0.3)
+    };
+    for (var i = 1; i < step.length; i++) {
+        //findMAX(i,'s1')
+        //找出最大的路徑權重
+        path[i] = {
+            's1': accMul(data.obs_prob['s1'][step[i]], findMAX(i, 's1')),
+            's2': accMul(data.obs_prob['s2'][step[i]], findMAX(i, 's2')),
+            's3': accMul(data.obs_prob['s3'][step[i]], findMAX(i, 's3'))
+        };
+    }
 
-    for (var i = 1; i < 7; i++) {
-        console.log(sq[sq.length - 1]);
-        nowAns = accMul(findMAX(data.trans_prob, sq[sq.length - 1], step[i]), nowAns);
+    //權重步驟
+    // console.log(path);
+
+    //最後算出來最大的權重就是答案
+    Ans = max(path[step.length - 1]['s1'], path[step.length - 1]['s2'], path[step.length - 1]['s3'])[0];
+    //向前找路徑
+    //初始化最後路徑
+    var tempAns = Ans;
+    var tempSt = max(path[step.length - 1]['s1'], path[step.length - 1]['s2'], path[step.length - 1]['s3'])[1];
+    sq.unshift(max(path[step.length - 1]['s1'], path[step.length - 1]['s2'], path[step.length - 1]['s3'])[1]);
+
+    //往回找路
+    for (var i = 5; i >= 0; i--) {
+        // accMul(path[i ]['s1'], data.trans_prob['s1'][nowSt])
+        for (var k = 0; k < 3; k++) {
+            // console.log(accMul(path[i][syToSt(k)], data.trans_prob[syToSt(k)][tempSt]));
+            if (accMul(data.obs_prob[tempSt][step[i + 1]], accMul(path[i][syToSt(k)], data.trans_prob[syToSt(k)][tempSt])) == tempAns) {
+                tempAns = path[i][syToSt(k)];
+                tempSt = syToSt(k);
+                sq.unshift(syToSt(k));
+            }
+        }
+
 
     }
 
+    console.log("\nViterbi: ");
+    console.log("   =", Ans);
+    console.log("    ", sq);
+
+
+
+
+    function max(a, b, c) {
+        var M = Math.max(a, b, c);
+        if (M == a) return [M, 's1'];
+        else if (M == b) return [M, 's2'];
+        else if (M == c) return [M, 's3'];
+    }
+
+    //symbol 轉 state
     function syToSt(inp) {
         var state;
-        if (inp == 'up') state = 's1';
-        else if (inp == 'down') state = 's2';
-        else if (inp == 'unchanged') state = 's3';
+        if (inp == 'up' || inp == 0) state = 's1';
+        else if (inp == 'down' || inp == 1) state = 's2';
+        else if (inp == 'unchanged' || inp == 2) state = 's3';
         return state;
     }
 
-    function findMAX(arr, now, nxtObs) {
-        var stateTemp;
+    //找這個節點最大的
+    function findMAX(i, nowSt) {
+        // var stateTemp;
         var max = 0;
-        var fd;
-
-
-        for (var i = 0; i < 3; i++) {
-            if (i == 0) fd = 's1';
-            else if (i == 1) fd = 's2';
-            else if (i == 2) fd = 's3';
-            console.log(fd + '  :');
-            console.log(accMul(data.trans_prob[now][fd], data.obs_prob[fd][nxtObs]));
-            if (accMul(data.trans_prob[now][fd], data.obs_prob[fd][nxtObs]) > max) {
-                max = accMul(data.trans_prob[now][fd], data.obs_prob[fd][nxtObs]);
-                stateTemp = fd;
-            }
-
+        // 找出(前一節點)X(轉移機率)權重最大的
+        for (var j = 0; j < 3; j++) {
+            if (accMul(path[i - 1][syToSt(j)], data.trans_prob[syToSt(j)][nowSt]) > max)
+                max = accMul(path[i - 1][syToSt(j)], data.trans_prob[syToSt(j)][nowSt]);
         }
-
-        // arr[syToSt(preObs,)][syToSt(nxtObs)]
-        // console.log(nxtObs);
-        // console.log(arr);
-        // console.log('\n');
-
-
-        sq.push(stateTemp);
         return max;
     }
 
-    console.log(sq);
-    console.log(nowAns);
-
 }
 
-function Viterbi(data) {
-    var V = [{}];
-    var path = {};
 
-    // Initialize base cases (t == 0)
-    for (var i = 0; i < data.states.length; i++) {
-        var state = data.states[i];
-        V[0][state] = data.init_prob[state] * data.obs_prob[state][data.obs[0]];
-        path[state] = [state];
-    }
-
-    // Run Viterbi for t > 0
-    for (var t = 1; t < data.obs.length; t++) {
-        V.push({});
-        var newpath = {};
-
-        for (var i = 0; i < data.states.length; i++) {
-            var state = data.states[i];
-            var max = [0, null];
-            for (var j = 0; j < data.states.length; j++) {
-                var state0 = data.states[j];
-                // Calculate the probablity
-                var calc = V[t - 1][state0] * data.trans_prob[state0][state] * data.obs_prob[state][data.obs[t]];
-                if (calc > max[0]) max = [calc, state0];
-            }
-            V[t][state] = max[0];
-            newpath[state] = path[max[1]].concat(state);
-        }
-        path = newpath;
-    }
-
-    var max = [0, null];
-    for (var i = 0; i < data.states.length; i++) {
-        var state = data.states[i];
-        var calc = V[data.obs.length - 1][state];
-        if (calc > max[0]) max = [calc, state];
-    }
-    console.log("\nViterbi: ");
-    console.log("   =", max[0]);
-    console.log("    ", path[max[1]]);
-    // return [max[0], path[max[1]]];
-}
-
+//浮點數乘法相乘運算
 function accMul(arg1, arg2) {
     var m = 0,
         s1 = arg1.toString(),
