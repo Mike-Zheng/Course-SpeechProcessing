@@ -4,9 +4,10 @@
 
 ![homework1.jpg](homework1.jpg)
 
- ####Question1: 
+
+####Question1: 
  
- #####-Find the probability P(up, up, unchanged, down, unchanged, down, up|λ)
+#####-Find the probability P(up, up, unchanged, down, unchanged, down, up|λ)
  
 
  
@@ -19,7 +20,8 @@
    = 0.00006
 
 ####Question2: 
- #####-Find the optimal state sequence of the model which generates the observation sequence: (up, up, unchanged, down, unchanged, down, up)
+
+#####-Find the optimal state sequence of the model which generates the observation sequence: (up, up, unchanged, down, unchanged, down, up)
 
 
 
