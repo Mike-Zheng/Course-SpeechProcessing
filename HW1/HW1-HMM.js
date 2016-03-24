@@ -45,20 +45,12 @@ var HMM = {
         console.log("\n Observations prob: \n", this.data.obs_prob);
     },
     //第一題
-    question1: function() {
-        var initP = this.data.init_prob;
-        var tranP = this.data.trans_prob;
-        //乘法佇列
-        var squence = [initP['s1'], tranP['s1']['s1'], tranP['s1']['s3'], tranP['s3']['s2'], tranP['s2']['s3'], tranP['s3']['s2'], tranP['s2']['s1']];
-        console.log("\nQuestion1:   P(up, up, unchanged, down, unchanged, down, up|λ)");
-        console.log("   =P(S1)P(S1|S1)P(S3|S1)P(S2|S3)P(S3|S2)P(S2|S3)P(S1|S2)");
-        console.log("   =", squence.join(" "));
-        var ans = 1.0;
-        //浮點數相乘
-        squence.forEach(function(p, i) {
-            ans = accMul(ans, p);
-        });
-        console.log("   =", ans);
+    question1: function(prob) {
+        this.setObservations(prob);
+        //暴力解
+        BruteForceQ1(this.data);
+        //Forward
+        ForwardQ1(this.data);
 
     },
     //第二題
@@ -66,15 +58,103 @@ var HMM = {
         this.setObservations(prob);
         var q2 = "\nQuestion2:   Find the optimal state sequence of the model which generates the observation sequence: (up, up, unchanged, down, unchanged, down, up)";
         console.log(q2);
+        //暴力解
         BruteForce(this.data);
+        //貪婪
         greedy(this.data);
-        Viterbi_a(this.data);
+        //Viterbi演算法
+        Viterbi(this.data);
     }
 }
 
 
-function BruteForce(data) {
+function ForwardQ1(data) {
+    var path = [];
+    var step = data.obs;
 
+    //初始化路徑
+    path[0] = {
+        's1': accMul(data.obs_prob['s1'][step[0]], 0.5),
+        's2': accMul(data.obs_prob['s2'][step[0]], 0.2),
+        's3': accMul(data.obs_prob['s3'][step[0]], 0.3)
+    };
+    for (var i = 1; i < step.length; i++) {
+        //addAll(i,'s1')
+        //找出最大的路徑權重
+        path[i] = {
+            's1': accMul(data.obs_prob['s1'][step[i]], addAll(i, 's1')),
+            's2': accMul(data.obs_prob['s2'][step[i]], addAll(i, 's2')),
+            's3': accMul(data.obs_prob['s3'][step[i]], addAll(i, 's3'))
+        };
+    }
+
+    // console.log(path);
+    var ans = path[6]['s1'] + path[6]['s2'] + path[6]['s3'];
+
+    console.log("\nForwardQ1: ");
+    console.log("   =", ans);
+
+    //symbol 轉 state
+    function syToSt(inp) {
+        var state;
+        if (inp == 'up' || inp == 0) state = 's1';
+        else if (inp == 'down' || inp == 1) state = 's2';
+        else if (inp == 'unchanged' || inp == 2) state = 's3';
+        return state;
+    }
+
+    function addAll(i, nowSt) {
+        //用forward法 加入
+        // var stateTemp;
+        var sum = 0;
+
+        for (var j = 0; j < 3; j++) {
+
+            sum += accMul(path[i - 1][syToSt(j)], data.trans_prob[syToSt(j)][nowSt]);
+        }
+        return sum;
+    }
+
+
+}
+
+
+function BruteForceQ1(data) {
+
+
+    var results = getBruteforceList();
+    // console.log(results.length);
+    //初始化最大值暫存變數
+
+    //初始化佇列
+    var nowAns = 1;
+    var sum = 0;
+
+    //從1~3^7將所有路徑納入考慮
+    for (var i = 0; i < 2187; i++) {
+
+        var dig = results[i].split(',')
+        nowAns = 1;
+        for (var j = 0; j < 7; j++) {
+            //將路徑上機率相乘
+            nowAns = accMul(data.obs_prob[dig[j]][data.obs[j]], nowAns);
+            //乘上一開始初始機率
+            if (j == 0) nowAns = accMul(data.init_prob[dig[j]], nowAns);
+            if (j < 6) nowAns = accMul(data.trans_prob[dig[j]][dig[j + 1]], nowAns);
+        }
+        // console.log(nowAns);
+        sum += nowAns;
+
+    }
+    console.log("\nBruteForceQ1: ");
+    console.log("   =", sum);
+
+}
+
+
+
+
+function getBruteforceList() {
 
     //排列組合用的維度 BEGIN
     //參考http://blog.darkthread.net/post-2012-03-17-recursion-game.aspx
@@ -102,6 +182,15 @@ function BruteForce(data) {
     //傳入第一層維度開始演算
     explore(dimensions.shift(), "");
     //排列組合用的維度 END
+
+    return results;
+}
+
+
+function BruteForce(data) {
+
+
+    var results = getBruteforceList();
 
     //初始化最大值暫存變數
     var MAX = 0;
@@ -196,7 +285,7 @@ function greedy(data) {
 }
 
 
-function Viterbi_a(data) {
+function Viterbi(data) {
     var path = [];
     var step = data.obs;
     var sq = []; //答案路徑
@@ -295,5 +384,5 @@ function accMul(arg1, arg2) {
 
 
 HMM.printInit();
-HMM.question1();
+HMM.question1(['up', 'up', 'unchanged', 'down', 'unchanged', 'down', 'up']);
 HMM.question2(['up', 'up', 'unchanged', 'down', 'unchanged', 'down', 'up']);

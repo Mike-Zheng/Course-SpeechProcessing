@@ -9,15 +9,13 @@
  
 #####-Find the probability P(up, up, unchanged, down, unchanged, down, up|λ)
  
-
- 
    P(up, up, unchanged, down, unchanged, down, up|λ)
-   
-   =P(S1)P(S1|S1)P(S3|S1)P(S2|S3)P(S3|S2)P(S2|S3)P(S1|S2)
-   
-   = 0.5 0.6 0.2 0.1 0.2 0.1 0.5
-   
-   = 0.00006
+   =ΣP(S|λ)P(O|S, λ)
+   BruteForce:
+   = 0.00037439866445840796
+   Forward:
+   = 0.0004967268975999998
+
 
 ####Question2: 
 
