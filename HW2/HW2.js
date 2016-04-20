@@ -52,9 +52,62 @@ HMM.prototype.data = {
     //     's3': { 'A': 0.3, 'B': 0.3, 'C': 0.4 }
     // }
 }
+
+HMM.prototype.tempdata = {
+    //觀測符號物件
+    //observations
+    obs: [],
+    //狀態物件
+    //states
+    states: [
+        's1',
+        's2',
+        's3'
+    ],
+    //初始機率物件
+    //init_state_prob
+    init_prob: {
+        's1': 0.34,
+        's2': 0.33,
+        's3': 0.33
+    },
+
+    // init_prob: {
+    //     's1': 0.5,
+    //     's2': 0.2,
+    //     's3': 0.3
+    // },
+    //狀態轉移機率物件
+    //transition_prob
+    trans_prob: {
+        's1': { 's1': 0.34, 's2': 0.33, 's3': 0.33 },
+        's2': { 's1': 0.33, 's2': 0.34, 's3': 0.33 },
+        's3': { 's1': 0.33, 's2': 0.33, 's3': 0.34 }
+    },
+    //觀測符號出現機率
+    //observations_prob 
+    obs_prob: {
+        's1': { 'A': 0.34, 'B': 0.33, 'C': 0.33 },
+        's2': { 'A': 0.33, 'B': 0.34, 'C': 0.33 },
+        's3': { 'A': 0.33, 'B': 0.33, 'C': 0.34 }
+    }
+    // trans_prob: {
+    //     's1': { 's1': 0.6, 's2': 0.2, 's3': 0.2 },
+    //     's2': { 's1': 0.5, 's2': 0.3, 's3': 0.2 },
+    //     's3': { 's1': 0.4, 's2': 0.1, 's3': 0.5 }
+    // },
+    // //觀測符號出現機率
+    // //observations_prob 
+    // obs_prob: {
+    //     '1': { 'A': 0.7, 'B': 0.1, 'C': 0.2 },
+    //     's2': { 'A': 0.1, 'B': 0.6, 'C': 0.3 },
+    //     's3': { 'A': 0.3, 'B': 0.3, 'C': 0.4 }
+    // }
+}
 HMM.prototype.setObservations = function(arr) {
     //以物件導向方式設定observations值
     this.data.obs = arr;
+    this.tempdata.obs = arr;
 }
 HMM.prototype.printInit = function() {
     //將模型內數學機率印出
@@ -67,14 +120,14 @@ HMM.prototype.printInit = function() {
 HMM.prototype.question3 = function(prob1, prob2) {
         console.log("------");
         this.setObservations(prob1);
-        console.log("Probility of "+prob1.join());
+        console.log("Probility of " + prob1.join());
         console.log(ForwardQ1(this.data));
         this.setObservations(prob2);
-        console.log("Probility of "+prob2.join());
+        console.log("Probility of " + prob2.join());
         console.log(ForwardQ1(this.data));
 
 
-        
+
     }
     //訓練
 HMM.prototype.trainning = function(prob) {
@@ -97,10 +150,11 @@ HMM.prototype.trainning = function(prob) {
         ipatten = this.data.states[i];
         for (var j = 0; j < this.data.states.length; j++) {
             jpatten = this.data.states[j];
-            this.data.trans_prob[ipatten][jpatten] = trainningA(this.data, ipatten, jpatten);
+            this.tempdata.trans_prob[ipatten][jpatten] = trainningA(this.data, ipatten, jpatten);
             console.log("After trainning a[" + ipatten + "][" + jpatten + "]=" + trainningA(this.data, ipatten, jpatten));
         }
     }
+
     console.log("\n");
 
     for (var j = 0; j < this.data.states.length; j++) {
@@ -109,13 +163,30 @@ HMM.prototype.trainning = function(prob) {
             if (ob == 0) obpatten = 'A';
             else if (ob == 1) obpatten = 'B';
             else if (ob == 2) obpatten = 'C';
-            this.data.obs_prob[jpatten][obpatten] = trainningB(this.data, jpatten, obpatten);
+            this.tempdata.obs_prob[jpatten][obpatten] = trainningB(this.data, jpatten, obpatten);
             console.log("After trainning b[" + ipatten + "][" + obpatten + "]=" + trainningB(this.data, jpatten, obpatten));
         }
     }
-    console.log("- section-");
 
+    console.log("\n");
+
+    for (var i = 0; i < this.data.states.length; i++) {
+        ipatten = this.data.states[i];
+        this.tempdata.init_prob[ipatten] = trainningPi(this.data, ipatten);
+        console.log("After trainning Pi[" + ipatten + "]=" + trainningPi(this.data, ipatten));
+
+    }
+
+    console.log("\n");
+    console.log("P(O|~λ) " + ForwardQ1(this.tempdata));
+    console.log("P(O|λ)  " + ForwardQ1(this.data));
+
+    if (ForwardQ1(this.tempdata) > ForwardQ1(this.data))
+        this.data = this.tempdata;
+
+    console.log("- section-");
 }
+
 
 
 
@@ -152,6 +223,14 @@ function trainningB(data, j, o) {
         base = base + gama(data, x, j);
 
     ans = accDiv(ans, base);
+
+    return ans;
+}
+
+
+function trainningPi(data, i) {
+    var ans = 0;
+    ans = gama(data, 1, i);
 
     return ans;
 }
@@ -348,8 +427,15 @@ function ksin(data, t, i, j) {
     // console.log(data.trans_prob[i][j]);
     // console.log(data.obs_prob[j][data.obs[t]]);
     // console.log(Beta(data, t + 1, j));
+    var base = 0;
+    for (var o = 0; o < data.states.length; o++) {
+        j = data.states[o];
+        base += Alpha(data, data.obs.length, j);
+    }
 
-    ans = accDiv(ans, ForwardQ1(data));
+    // console.log(base);
+    // ans = accDiv(ans, ForwardQ1(data));
+    ans = accDiv(ans, base);
 
     return ans;
 }
@@ -543,13 +629,13 @@ hmmModel1.question3(['A', 'B', 'C', 'A', 'B', 'C', 'C', 'A', 'B'], ['A', 'A', 'B
 // hmmModel2 = new HMM();
 // hmmModel2.printInit();
 
-// hmmModel2.trainning(['B','B','B','C','C','B','C']);
-// hmmModel2.trainning(['C','C','B','A','B','B']);
-// hmmModel2.trainning(['A','A','C','C','B','B','B']);
-// hmmModel2.trainning(['B','B','A','B','B','A','C']);
-// hmmModel2.trainning(['C','C','A','A','B','B','A','B']);
-// hmmModel2.trainning(['B','B','B','C','C','B','A','A']);
-// hmmModel2.trainning(['A','B','B','B','B','A','B','A']);
-// hmmModel2.trainning(['C','C','C','C','C']);
-// hmmModel2.trainning(['B','B','A','A','A']);
+// hmmModel2.trainning(['B', 'B', 'B', 'C', 'C', 'B', 'C']);
+// hmmModel2.trainning(['C', 'C', 'B', 'A', 'B', 'B']);
+// hmmModel2.trainning(['A', 'A', 'C', 'C', 'B', 'B', 'B']);
+// hmmModel2.trainning(['B', 'B', 'A', 'B', 'B', 'A', 'C']);
+// hmmModel2.trainning(['C', 'C', 'A', 'A', 'B', 'B', 'A', 'B']);
+// hmmModel2.trainning(['B', 'B', 'B', 'C', 'C', 'B', 'A', 'A']);
+// hmmModel2.trainning(['A', 'B', 'B', 'B', 'B', 'A', 'B', 'A']);
+// hmmModel2.trainning(['C', 'C', 'C', 'C', 'C']);
+// hmmModel2.trainning(['B', 'B', 'A', 'A', 'A']);
 // hmmModel2.question3(['A', 'B', 'C', 'A', 'B', 'C', 'C', 'A', 'B'], ['A', 'A', 'B', 'A', 'B', 'C', 'C', 'C', 'C', 'B', 'B', 'B']);
