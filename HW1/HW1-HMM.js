@@ -88,7 +88,7 @@ function ForwardQ1(data) {
         };
     }
 
-    // console.log(path);
+     console.log(path);
     var ans = path[6]['s1'] + path[6]['s2'] + path[6]['s3'];
 
     console.log("\nForwardQ1: ");
